@@ -2,7 +2,7 @@
 from pyspark.ml.feature import VectorAssembler
 from pyspark.sql import DataFrame
 from pyspark.ml.pipeline import Pipeline, PipelineModel
-from features import AssembleFeatures
+from .features import AssembleFeatures
 
 
 def set_estimator(estimator, **params):

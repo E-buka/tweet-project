@@ -1,4 +1,4 @@
-# main.py
+
 from src import start_spark, df_schema, TEXT_COL, LABEL_COL, DATE_COL, NUMERIC_COLS
 from pyspark.storagelevel import StorageLevel
 from src import text_cleaner, date_cleaner, target_cleaner
