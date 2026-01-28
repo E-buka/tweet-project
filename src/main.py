@@ -57,14 +57,14 @@ def main():
     model = pipeline.fit(df_idf)
     
     ## saving the model
-    model.write().overwrite().save("/tweet_project/models/tweet_classification")
+    model.write().overwrite().save("/tweet_project/models/full_model")
     
     # freeing up the memory
     feature_assembler.unpersist()
     clean_df.unpersist()
     
     #reloadingmodel
-    trained_model = PipelineModel.load("/tweet_project/models/tweet_classification")
+    trained_model = PipelineModel.load("/tweet_project/models/full_model")
     
     #prepare the test data and predict
     test_idf = feature_assembler.prepare_text(test)
