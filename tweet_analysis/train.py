@@ -6,8 +6,8 @@ from .features import AssembleFeatures
 
 
 def set_estimator(estimator, **params):
-    estimator = estimator.setParams(params)
-    return estimator
+    return estimator.setParams(**params)
+    
 
 def build_pipeline(feature_assembler:AssembleFeatures, use_numeric=False, estimator=None):
     """ builds a model pipeline"""

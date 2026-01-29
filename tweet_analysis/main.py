@@ -1,11 +1,12 @@
 
-from src import start_spark, df_schema, TEXT_COL, LABEL_COL, DATE_COL, NUMERIC_COLS
+from tweet_analysis import start_spark, df_schema, TEXT_COL, LABEL_COL, DATE_COL, NUMERIC_COLS
 from pyspark.storagelevel import StorageLevel
-from src import text_cleaner, date_cleaner, target_cleaner
-from src import AssembleFeatures, build_pipeline, set_estimator
+from tweet_analysis import text_cleaner, date_cleaner, target_cleaner
+from tweet_analysis import AssembleFeatures, build_pipeline, set_estimator
 from pyspark.ml.classification import LogisticRegression
 from pyspark.ml.pipeline import PipelineModel
-from src import auc_, f1_, accuracy_, precision_recall, save_to_json, confusion_matrix
+from tweet_analysis import (auc_, f1_, accuracy_, precision_recall, 
+                            save_to_json, confusion_matrix)
 
 def main():
     """Load, prepare, train adn save model 
@@ -18,7 +19,7 @@ def main():
           .option('encoding', 'ISO-8859-1')
           .option('header', 'true')
           .schema(df_schema)
-          .load('tweets.csv')
+          .load('/home/ebuka/tweets.csv')
          )
     
     #cleaning the dataframe
@@ -39,7 +40,7 @@ def main():
     feature_assembler = AssembleFeatures(NUMERIC_COLS=NUMERIC_COLS, TEXT_COL=TEXT_COL,
                      LABEL_COL=LABEL_COL, persist_level=StorageLevel.MEMORY_AND_DISK)
     
-    df_idf = feature_assembler.prepare_text(train)
+    df_idf = feature_assembler.prepare_text(train, fit=True)
     df_idf, weight_col = feature_assembler.add_weights(df_idf)
     
     #setting the estimator
@@ -57,17 +58,15 @@ def main():
     model = pipeline.fit(df_idf)
     
     ## saving the model
-    model.write().overwrite().save("/tweet_project/models/full_model")
+    model.write().overwrite().save("models/full_model")
     
-    # freeing up the memory
     feature_assembler.unpersist()
-    clean_df.unpersist()
     
     #reloadingmodel
-    trained_model = PipelineModel.load("/tweet_project/models/full_model")
+    trained_model = PipelineModel.load("models/full_model")
     
     #prepare the test data and predict
-    test_idf = feature_assembler.prepare_text(test)
+    test_idf = feature_assembler.prepare_text(test, fit=False)
     prediction = trained_model.transform(test_idf)
 
     # evaluate prediction results
@@ -81,9 +80,19 @@ def main():
                        'recall': recall
                        }
     
-    save_to_json(path="/tweet_project/reports", **prediction_results)
+    save_to_json(path="reports/", **prediction_results)
 
-    confusion_matrix = confusion_matrix(prediction, LABEL_COL)
-    confusion_matrix.write.mode("overwrite").csv("/tweet_project/reports/confusion_matrix")
+    confusion_matrix_ = confusion_matrix(prediction, LABEL_COL)
+    confusion_matrix_.write.option("header", True)\
+        .option("delimiter", ",")\
+        .format("csv")\
+        .mode("overwrite")\
+        .save("reports/confusion_matrix")
+        
+    # freeing up the memory
+
+    clean_df.unpersist()
 
 
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,1 @@
+{"class":"org.apache.spark.ml.feature.StandardScalerModel","timestamp":1769722692235,"sparkVersion":"4.1.1","uid":"StandardScaler_57b883b761dc","paramMap":{"inputCol":"num_features","outputCol":"scaled_num_vector","withMean":false},"defaultParamMap":{"outputCol":"StandardScaler_57b883b761dc__output","withMean":false,"withStd":true}}

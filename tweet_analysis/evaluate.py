@@ -30,10 +30,10 @@ def accuracy_(prediction: DataFrame, LABEL_COL):
 
 def precision_recall(prediction:DataFrame, LABEL_COL):
     """ precision recall evaluator"""
-    tp_ = prediction((F.col(LABEL_COL) == 1) & (F.col('prediction') == 1)).count()
-    tn_ = prediction((F.col(LABEL_COL) == 0) & (F.col('prediction') == 0)).count()
-    fp_ = prediction((F.col(LABEL_COL) == 0) & (F.col('prediction') == 1)).count()
-    fn_ = prediction((F.col(LABEL_COL) == 1) & (F.col('prediction') == 0)).count()
+    tp_ = prediction.filter((F.col(LABEL_COL) == 1) & (F.col('prediction') == 1)).count()
+    tn_ = prediction.filter((F.col(LABEL_COL) == 0) & (F.col('prediction') == 0)).count()
+    fp_ = prediction.filter((F.col(LABEL_COL) == 0) & (F.col('prediction') == 1)).count()
+    fn_ = prediction.filter((F.col(LABEL_COL) == 1) & (F.col('prediction') == 0)).count()
 
     precision_= tp_ / (tp_ + fp_) if (tp_ + fp_) != 0 else 0  
 
@@ -55,11 +55,11 @@ def confusion_matrix(prediction:DataFrame, LABEL_COL):
           .groupBy('label', 'predicted')
           .count()
          )
-    confusion_matrix = (cm
+    confusion_matrx = (cm
                         .groupBy('label')
                         .pivot('predicted')
                         .sum('count')
                         .na.fill(0)
                         .orderBy('label')
                        )
-    return confusion_matrix
+    return confusion_matrx

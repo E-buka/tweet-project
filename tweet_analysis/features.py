@@ -19,8 +19,8 @@ class AssembleFeatures:
         self.LABEL_COL = LABEL_COL
         self.TEXT_COL = TEXT_COL
         
+        self.text_model = None
         self.df_idf = None
-
 
     def numeric_assembler(self):
         """assemble and scale numeric features
@@ -30,35 +30,43 @@ class AssembleFeatures:
         scaled_num = StandardScaler(inputCol='num_features', outputCol='scaled_num_vector', withMean=False)
         return numeric_vec, scaled_num
 
-    def prepare_text(self, df):
+    def prepare_text(self, df, fit=False):
         """ tokenize text features and persist to memory to avoid recomputing
         """
-        if self.df_idf is not None:
-            return self
-        
-        tokenizer = RegexTokenizer(inputCol = self.TEXT_COL, 
+        if fit:
+            tokenizer = RegexTokenizer(inputCol = self.TEXT_COL, 
                                outputCol='word_token', 
                               pattern='\\W+', 
                               minTokenLength=2)
     
-        token_filter = StopWordsRemover(inputCol='word_token', outputCol='token_nostops')
-        hashed = HashingTF(inputCol='token_nostops', outputCol='hashed_token', numFeatures=2**16)
-        tfidf = IDF(minDocFreq=5, inputCol='hashed_token', outputCol='tfidf_token')
-        idf_pipe = Pipeline(stages= [tokenizer, token_filter, hashed, tfidf])
-    
-        df_idf_model = idf_pipe.fit(df)
-        idf_transformed = df_idf_model.transform(df)
+            token_filter = StopWordsRemover(inputCol='word_token', 
+                                            outputCol='token_nostops')
+            
+            hashed = HashingTF(inputCol='token_nostops', 
+                               outputCol='hashed_token', 
+                               numFeatures=2**16)
+            
+            tfidf = IDF(minDocFreq=5, 
+                        inputCol='hashed_token', 
+                        outputCol='tfidf_token')
+            
+            idf_pipe = Pipeline(stages= [tokenizer, token_filter, hashed, tfidf])
+            self.text_model = idf_pipe.fit(df)
+        
+        if self.text_model is None:
+            raise RuntimeError("Text model has not been fitted")
+            
+        transformed = self.text_model.transform(df)
 
-    
         cols_keep = [self.LABEL_COL, 'tfidf_token'] + self.NUMERIC_COLS
-    
-        idf_transformed = idf_transformed.select(*cols_keep)
+        transformed = transformed.select(*cols_keep)
 
-        self.df_idf = idf_transformed.persist(self.persist_level)
-        ## materialising
-        _ = self.df_idf.count()
-
-        return self.df_idf
+        if fit:
+            self.df_idf = transformed.persist(self.persist_level)
+            _ = self.df_idf.count()
+            return self.df_idf
+        
+        return transformed
 
 
     def add_weights(self, df, weight_col='class_weight'):
@@ -73,7 +81,7 @@ class AssembleFeatures:
 
         expr = None
         for k, weight in weights.items():
-            cond = F.when(self.LABEL_COL == F.lit(k))
+            cond = (F.col(self.LABEL_COL) == F.lit(k))
             expr = F.when(cond, F.lit(float(weight))) if expr is None else expr.when(cond, F.lit(float(weight)))
 
         df = df.withColumn(weight_col, expr.otherwise(F.lit(1.0)))
@@ -83,4 +91,5 @@ class AssembleFeatures:
     def unpersist(self):
         if self.df_idf is not None:
             self.df_idf.unpersist()
+            self.df_idf = None
         return self
