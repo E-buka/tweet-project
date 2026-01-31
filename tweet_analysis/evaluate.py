@@ -1,7 +1,6 @@
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator, BinaryClassificationEvaluator
 from pyspark.sql import functions as F
 import json
-from .schema import LABEL_COL
 from pyspark.sql import DataFrame
 
 def auc_(prediction: DataFrame, LABEL_COL):

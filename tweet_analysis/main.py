@@ -1,98 +1,33 @@
 
-from tweet_analysis import start_spark, df_schema, TEXT_COL, LABEL_COL, DATE_COL, NUMERIC_COLS
-from pyspark.storagelevel import StorageLevel
-from tweet_analysis import text_cleaner, date_cleaner, target_cleaner
-from tweet_analysis import AssembleFeatures, build_pipeline, set_estimator
-from pyspark.ml.classification import LogisticRegression
+from tweet_analysis import start_spark, LABEL_COL
 from pyspark.ml.pipeline import PipelineModel
 from tweet_analysis import (auc_, f1_, accuracy_, precision_recall, 
                             save_to_json, confusion_matrix)
 
 def main():
-    """Load, prepare, train adn save model 
-    Then reload and predict data, and finally evaluate results 
+    """Load test data and predict, then evaluate results 
     """
-    # starting spark session and loading the data 
     spark = start_spark()
-    df = (spark.read
-          .format('csv')
-          .option('encoding', 'ISO-8859-1')
-          .option('header', 'true')
-          .schema(df_schema)
-          .load('/home/ebuka/tweets.csv')
-         )
+    test = spark.read.parquet("data/splits/test.parquet")
+
+    tweet_model = PipelineModel.load("models/tweet_model")
     
-    #cleaning the dataframe
-    df = text_cleaner(df)
-    df = date_cleaner(df)
-    df = target_cleaner(df)
-    
-    #selecting columns to keep
-    clean_df = df.select(NUMERIC_COLS + [TEXT_COL, LABEL_COL])
-    
-    clean_df.persist(StorageLevel.MEMORY_AND_DISK) #persisting to memory
-    _ = clean_df.count() #materialising
-    
-    #train test split
-    train, test = clean_df.randomSplit(weights=[0.8, 0.2], seed=44)
-    
-    #feature preparations
-    feature_assembler = AssembleFeatures(NUMERIC_COLS=NUMERIC_COLS, TEXT_COL=TEXT_COL,
-                     LABEL_COL=LABEL_COL, persist_level=StorageLevel.MEMORY_AND_DISK)
-    
-    df_idf = feature_assembler.prepare_text(train, fit=True)
-    df_idf, weight_col = feature_assembler.add_weights(df_idf)
-    
-    #setting the estimator
-    parameters = {'featuresCol': 'features', 
-                'labelCol': LABEL_COL, 
-                'weightCol': weight_col, 
-                'maxIter': 100, 
-                'regParam': 0.1,
-                'elasticNetParam': 0.0
-    }
-    estimator = set_estimator(estimator=LogisticRegression(), **parameters)
-    
-    # building pipeline and fitting the model
-    pipeline = build_pipeline(feature_assembler=feature_assembler, use_numeric=True, estimator = estimator)
-    model = pipeline.fit(df_idf)
-    
-    ## saving the model
-    model.write().overwrite().save("models/full_model")
-    
-    feature_assembler.unpersist()
-    
-    #reloadingmodel
-    trained_model = PipelineModel.load("models/full_model")
-    
-    #prepare the test data and predict
-    test_idf = feature_assembler.prepare_text(test, fit=False)
-    prediction = trained_model.transform(test_idf)
+    prediction = tweet_model.transform(test)
 
     # evaluate prediction results
     precision, recall = precision_recall(prediction, LABEL_COL)
 
-    prediction_results = {
-                       'AUC' : auc_(prediction, LABEL_COL),
-                       'f1_score': f1_(prediction, LABEL_COL),
-                       'accuracy': accuracy_(prediction, LABEL_COL),
-                       'precision': precision,
-                       'recall': recall
-                       }
+    results = {'AUC' : auc_(prediction, LABEL_COL),
+               'f1_score': f1_(prediction, LABEL_COL),
+               'accuracy': accuracy_(prediction, LABEL_COL),
+               'precision': precision,
+                'recall': recall
+                }
     
-    save_to_json(path="reports/", **prediction_results)
+    save_to_json(path="reports/", **results)
 
-    confusion_matrix_ = confusion_matrix(prediction, LABEL_COL)
-    confusion_matrix_.write.option("header", True)\
-        .option("delimiter", ",")\
-        .format("csv")\
-        .mode("overwrite")\
-        .save("reports/confusion_matrix")
-        
-    # freeing up the memory
-
-    clean_df.unpersist()
-
+    cm = confusion_matrix(prediction, LABEL_COL)
+    cm.write.mode("overwrite").parquet("reports/confusion_matrix")
 
 if __name__ == "__main__":
     main()
