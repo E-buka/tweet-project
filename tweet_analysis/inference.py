@@ -16,13 +16,6 @@ from tweet_analysis import text_cleaner, date_cleaner
 class PredictionResult:
     predictions_df: DataFrame 
     
-    def first_row(self) -> dict:
-        row = self.predictions_df.limit(1).collect()
-        return row[0].asDict() if row else {}
-    
-    def show(self, n: int=5, truncate:bool = False) -> None:
-        self.predictions_df.show(n=n, truncate=truncate)
-        
     def json_result(self):
         predictions_ = self.predictions_df.select(
             F.col('prediction').cast('int').alias('label'),
