@@ -11,6 +11,7 @@ from tweet_analysis import start_spark
 from tweet_analysis import TEXT_COL, DATE_COL, LABEL_COL
 from tweet_analysis import text_cleaner, date_cleaner
 
+spark = start_spark()
 
 @dataclass
 class PredictionResult:
@@ -36,8 +37,6 @@ def load_pipeline_model(model_dir:str) -> PipelineModel:
 def get_tweet() -> DataFrame:
     """start spark session and take a user input
     capture timestamp of input and return a dataframe"""
-    
-    spark = start_spark()
     tweet = input("Please enter a tweet: ")
     date_str = datetime.now().strftime("%a %b %d %H:%M:%S %Y")
 

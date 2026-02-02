@@ -4,6 +4,7 @@ from .features import AssembleFeatures, add_weights
 from .train import set_estimator
 from .preprocessing import text_cleaner, date_cleaner, target_cleaner
 from .evaluate import auc_, f1_, accuracy_, precision_recall, save_to_json, confusion_matrix
+from .inference import load_pipeline_model, get_tweet, predict, PredictionResult
     
 __all__ = [
     "start_spark",
@@ -13,4 +14,6 @@ __all__ = [
     "set_estimator", "add_weights"
     "auc_", "f1_", "accuracy_", "precision_recall", "confusion_matrix",
     "save_to_json",
+    "PredictionResult", "load_pipeline_model", "get_tweet",
+    "predict"
 ]
