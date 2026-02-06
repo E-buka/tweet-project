@@ -12,7 +12,7 @@ def run():
           .option('encoding', 'ISO-8859-1')
           .option('header', 'true')
           .schema(df_schema)
-          .load('/home/ebuka/tweets.csv')
+          .load('/home/user/tweets.csv')
         )
     
     df = target_cleaner(date_cleaner(text_cleaner(df)))
