@@ -4,19 +4,21 @@ from fastapi import HTTPException
 from contextlib import asynccontextmanager 
 from tweet_analysis.inference import predict, get_spark
 
+app = FastAPI(title="Tweet Sentiment API")
     
 class Userinput(BaseModel):
     text: str 
     
-@asynccontextmanager
-async def warmup(app: FastAPI):
+#@asynccontextmanager
+@app.on_event('startup')
+async def warmup():
     try:
         _ = get_spark()
         print("warmup complete")
     except Exception as e:
         print("Warmup failed", repr(e))
     
-app = FastAPI(title="Tweet Sentiment API", lifespan=warmup)
+
   
 @app.get("/")
 def root():
