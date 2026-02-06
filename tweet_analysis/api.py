@@ -11,14 +11,16 @@ from pathlib import Path
 spark = None
 model = None
 
-model_dir = (Path(__file__).resolve().parents[1]/"models"/"tweet_model")
+BASE_DIR = Path(__file__).resolve().parents[1]
+model_dir = BASE_DIR / "models" / "tweet_model"
+ 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     #start spark and load model
     global spark, model
     spark = start_spark()
-    model = load_pipeline_model(model_dir)
+    model = load_pipeline_model(str(model_dir))
     yield
     model = None
     spark = None
