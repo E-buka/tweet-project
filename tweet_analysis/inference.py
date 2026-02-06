@@ -4,14 +4,17 @@ from pyspark.ml.pipeline import PipelineModel
 from dataclasses import dataclass
 from typing import Optional, Union
 from pyspark.sql import DataFrame
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 from functools import lru_cache
+from pathlib import Path
 
 from tweet_analysis.config import start_spark 
 from tweet_analysis.schema import TEXT_COL, DATE_COL, LABEL_COL
 from tweet_analysis.preprocessing import text_cleaner, date_cleaner
 
+BASE_DIR = Path(__file__).resolve().parents[1]
+model_dir = BASE_DIR / "models" / "tweet_model"
 
 @dataclass
 class PredictionResult:
@@ -35,8 +38,8 @@ def get_spark():
     return start_spark()
         
 @lru_cache(maxsize=1)    
-def load_pipeline_model(model_dir:str) -> PipelineModel:
-   # _ = get_spark()
+def load_pipeline_model(model_dir:str=model_dir) -> PipelineModel:
+    _ = get_spark()
     return PipelineModel.load(model_dir)
 
 
@@ -45,19 +48,20 @@ def get_tweet(tweet: str, date_str: Optional[str]=None) -> DataFrame:
     capture timestamp of input and return a dataframe"""
     spark = get_spark()
     if date_str is None:
-        date_str = datetime.now().strftime("%a %b %d %H:%M:%S %Y")
-
-    
+        date_str = datetime.now(timezone.utc).strftime("%a %b %d %H:%M:%S %Y")
     return spark.createDataFrame([{TEXT_COL:tweet, 
                                  DATE_COL:date_str}
                                ])
 
 
-def predict(df:DataFrame, model: PipelineModel, keep_cols: Optional[list[str]]=None) -> PredictionResult:
+def predict(text:str, model_dir = model_dir, keep_cols: Optional[list[str]]=None) -> PredictionResult:
     """Take a raw impute dataframe as df
     and predict using a loaded spark pipelinemodel
     """
+    model = load_pipeline_model(model_dir)
+    df = get_tweet(text)
     df = date_cleaner(text_cleaner(df))
+
            
     prediction = model.transform(df)
     #getting positive probability
