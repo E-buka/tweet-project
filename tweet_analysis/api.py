@@ -19,7 +19,7 @@ def health():
 
 @app.post("/predict")
 async def predictor(text_input:Userinput):
-    results = predict(text_input.tweet)
+    results = predict(text_input.text)
     return {
         'Tweet-sentiment': results.sentiment,
         'Label': results.label,
