@@ -32,8 +32,13 @@ class Userinput(BaseModel):
     text: str 
     
 @app.get("/")
-def status_check():
-    return {"status": "connected successfully"}
+def root():
+    return {"status": "ok", "message": "Use POST /predict"}
+   
+    
+@app.get("/health")
+def health():
+    return {"status": "healthy"}
 
 
 @app.post("/predict")
