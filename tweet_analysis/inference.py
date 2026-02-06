@@ -6,16 +6,15 @@ from typing import Optional, Union
 from pyspark.sql import DataFrame
 from datetime import datetime
 import json
+from functools import lru_cache
 
-from tweet_analysis import start_spark 
-from tweet_analysis import TEXT_COL, DATE_COL, LABEL_COL
-from tweet_analysis import text_cleaner, date_cleaner
+from tweet_analysis.config import start_spark 
+from tweet_analysis.schema import TEXT_COL, DATE_COL, LABEL_COL
+from tweet_analysis.preprocessing import text_cleaner, date_cleaner
 
-spark = start_spark()
 
 @dataclass
 class PredictionResult:
-    predictions_df: DataFrame 
     label : Union[int, float] = None 
     positive_probability: float = None
     sentiment: str = None
@@ -23,29 +22,30 @@ class PredictionResult:
     
     
     def json_result(self):
-        predictions_ = self.predictions_df.select(
-            F.col('prediction').cast('int').alias('label'),
-            F.col('p_positive').alias('positive_probability'),
-            vector_to_array('probability').alias('probability'), 
-            vector_to_array('rawPrediction').alias('rawProbability')
-        )
-        row = predictions_.limit(1).collect()[0]
-        result = row.asDict()
-        json_result = json.dumps(result)
-        return json_result
-    
+        result = {
+            "label": self.label,
+            "positive_probability": self.positive_probability,
+            "sentiment": self.sentiment
+        }
+        return json.dumps(result)
 
+
+@lru_cache(maxsize=1)    
+def get_spark():
+    return start_spark()
         
-    
+@lru_cache(maxsize=1)    
 def load_pipeline_model(model_dir:str) -> PipelineModel:
+   # _ = get_spark()
     return PipelineModel.load(model_dir)
 
 
-def get_tweet() -> DataFrame:
+def get_tweet(tweet: str, date_str: Optional[str]=None) -> DataFrame:
     """start spark session and take a user input
     capture timestamp of input and return a dataframe"""
-    tweet = input("Please enter a tweet: ")
-    date_str = datetime.now().strftime("%a %b %d %H:%M:%S %Y")
+    spark = get_spark()
+    if date_str is None:
+        date_str = datetime.now().strftime("%a %b %d %H:%M:%S %Y")
 
     
     return spark.createDataFrame([{TEXT_COL:tweet, 
@@ -85,7 +85,7 @@ def predict(df:DataFrame, model: PipelineModel, keep_cols: Optional[list[str]]=N
     
     
         
-    return PredictionResult(predictions_df=prediction, 
+    return PredictionResult(
                             label=label,
                             positive_probability = positive_probability,
                             sentiment = sentiment
@@ -93,10 +93,11 @@ def predict(df:DataFrame, model: PipelineModel, keep_cols: Optional[list[str]]=N
                     
 
 if __name__ == "__main__":
-    tweet = get_tweet()
-    model = load_pipeline_model('models/tweet_model')
-    prediction_result = predict(df=tweet, model=model)
-    print(prediction_result.sentiment)
-    print(prediction_result.label)
-    print(prediction_result.positive_probability)
+    pass # comment out to run
+    # tweet = get_tweet(tweet="example tweet")
+    # model = load_pipeline_model('models/tweet_model')
+    # prediction_result = predict(df=tweet, model=model)
+    # print(prediction_result.sentiment)
+    # print(prediction_result.label)
+    # print(prediction_result.positive_probability)
     

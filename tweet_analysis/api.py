@@ -1,9 +1,10 @@
 from fastapi import FastAPI
 from pydantic import BaseModel 
 from contextlib import asynccontextmanager
-from tweet_analysis import (start_spark, load_pipeline_model,
-                            predict, PredictionResult)
-from tweet_analysis import TEXT_COL, DATE_COL
+from tweet_analysis.inference import load_pipeline_model, predict
+from tweet_analysis.schema import TEXT_COL, DATE_COL
+from tweet_analysis.config import start_spark 
+
 from datetime import datetime, timezone
 from pathlib import Path 
 
