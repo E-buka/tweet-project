@@ -97,11 +97,9 @@ def predict(text:str, model_dir = model_dir, keep_cols: Optional[list[str]]=None
                     
 
 if __name__ == "__main__":
-    pass # comment out to run
-    # tweet = get_tweet(tweet="example tweet")
-    # model = load_pipeline_model('models/tweet_model')
-    # prediction_result = predict(df=tweet, model=model)
-    # print(prediction_result.sentiment)
-    # print(prediction_result.label)
-    # print(prediction_result.positive_probability)
+    
+    prediction_result = predict('see see trouble')
+    print(prediction_result.sentiment)
+    print(prediction_result.label)
+    print(prediction_result.positive_probability)
     
