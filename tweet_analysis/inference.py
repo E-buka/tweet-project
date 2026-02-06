@@ -2,7 +2,7 @@ from pyspark.sql import functions as F
 from pyspark.ml.functions import vector_to_array
 from pyspark.ml.pipeline import PipelineModel
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union
 from pyspark.sql import DataFrame
 from datetime import datetime
 import json
@@ -16,6 +16,11 @@ spark = start_spark()
 @dataclass
 class PredictionResult:
     predictions_df: DataFrame 
+    label : Union[int, float] = None 
+    positive_probability: float = None
+    sentiment: str = None
+
+    
     
     def json_result(self):
         predictions_ = self.predictions_df.select(
@@ -27,8 +32,10 @@ class PredictionResult:
         row = predictions_.limit(1).collect()[0]
         result = row.asDict()
         json_result = json.dumps(result)
-        print(json_result)
+        return json_result
+    
 
+        
     
 def load_pipeline_model(model_dir:str) -> PipelineModel:
     return PipelineModel.load(model_dir)
@@ -54,7 +61,8 @@ def predict(df:DataFrame, model: PipelineModel, keep_cols: Optional[list[str]]=N
            
     prediction = model.transform(df)
     #getting positive probability
-    prediction = prediction.withColumn("p_positive", vector_to_array(F.col("probability"))[1])
+    prediction = prediction.withColumn("p_positive", vector_to_array(F.col("probability"))[1])      
+    
 
     cols = []
     if keep_cols:
@@ -69,12 +77,26 @@ def predict(df:DataFrame, model: PipelineModel, keep_cols: Optional[list[str]]=N
         
     if cols:
         prediction = prediction.select(*cols)
+    
+    label = prediction.select(F.col('prediction').cast('int')).collect()[0][0]
+    positive_probability = round(prediction.select(vector_to_array(F.col("probability"))[1]).collect()[0][0], 5)
+    sentiment = "Positive" if label == 1 else "Negative"
+
+    
+    
         
-    return PredictionResult(predictions_df=prediction)
+    return PredictionResult(predictions_df=prediction, 
+                            label=label,
+                            positive_probability = positive_probability,
+                            sentiment = sentiment
+                           )
                     
 
 if __name__ == "__main__":
     tweet = get_tweet()
     model = load_pipeline_model('models/tweet_model')
     prediction_result = predict(df=tweet, model=model)
-    prediction_result.json_result()
+    print(prediction_result.sentiment)
+    print(prediction_result.label)
+    print(prediction_result.positive_probability)
+    

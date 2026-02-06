@@ -1,43 +1,50 @@
 from fastapi import FastAPI
 from pydantic import BaseModel 
 from contextlib import asynccontextmanager
-
 from tweet_analysis import (start_spark, load_pipeline_model,
                             predict, PredictionResult)
 from tweet_analysis import TEXT_COL, DATE_COL
-from datetime import datetime
-from pathlib import Path
+from datetime import datetime, timezone
+from pathlib import Path 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
-MODEL_DIR = (PROJECT_ROOT / "models" / "tweet_model").as_posix()
+spark = None
+model = None
 
+model_dir = (Path(__file__).resolve().parents[1]/"models"/"tweet_model")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     #start spark and load model
+    global spark, model
     spark = start_spark()
-    model = load_pipeline_model(MODEL_DIR)
+    model = load_pipeline_model(model_dir)
     yield
-    #model = None
+    model = None
+    spark = None
     
-app = FastAPI(title="weet Sentiment API", lifespan=lifespan)
+app = FastAPI(title="Tweet Sentiment API", lifespan=lifespan)
     
-class PredictRequest(BaseModel):
-    model_config = {"extra":"forbid"}
-    text: str
+class Userinput(BaseModel):
+    text: str 
     
 @app.get("/")
 def status_check():
     return {"status": "connected successfully"}
 
-@app.post("/tweet")
-async def tweet(tweet: PredictRequest):
-    tweet = tweet.text
-    date_str = datetime.now().strftime("%a %b %d %H:%M:%S %Y")
+
+@app.post("/predict")
+async def predictor(text_input:Userinput):
+    tweet = text_input.text
+    date_str = datetime.now(timezone.utc).strftime("%a %b %d %H:%M:%S %Y")
     
     df = spark.createDataFrame([{TEXT_COL:tweet, 
                                  DATE_COL:date_str}
                                ])
-    result = predict(df=df, model=model)
-    return result.json_result()
+    results = predict(df=df, model=model)
+    
+    return {
+        'Tweet-sentiment': results.sentiment,
+        'Label': results.label,
+        'Positive-probability': results.positive_probability
+    }
