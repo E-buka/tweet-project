@@ -9,13 +9,16 @@ The dataset used for this project is a collection of 1.05M tweets classified as 
 
 #### Project Structure
 
-Pyspark was used for the entire project as in a realtime machine learning production pipeline though of a small scale. The data was cleaned and feature engineered using pyspark and a subsample of the cleaned data was visualized in Pandas and Matplotlib. The data modelling steps are saved as python scripts under a single package- tweet_analysis. A notebook version of the modelling is also available in the notebooks folder.  
+Pyspark was used for the entire project as in a realtime machine learning production pipeline though on a small scale. The data was cleaned and feature engineered using pyspark and a subsample of the cleaned data was visualized in Pandas and Matplotlib. The data modelling steps are saved as python scripts under a single package- tweet_analysis. A notebook version of the modelling is also available in the notebooks folder.  
 
 ##### Model
 Data was split and saved as parquet for training and testing. The text data was transformed to spark TF_IDF while date column was engineered to generate date features. Model pipeline included both numeric and text features, but also with the option of using only text features. Notebook version shows modelling with text only and text+numeric features.  Cached TF-IDF was used to generate class weights from the training data before the final modelling using Pyspark ML Logistic Regression.  The pipeline model was saved.
 
+Choice of Model: Logistic regression was selected due to its scalability with sparse TF-IDF features, coefficients interpretability and compatibility with Spark ML pipelines.
+
 ##### Evaluation 
 The pipeline model was reloaded and used to predict the test data and evaluated. Evaluation metrics used include AUC, F1-score, accuracy and confusion matrix. The AUC, F1 and accuracy are saved as json file and the confusion matrix saved as a parquet file in reports folder.
+F1-score was prioritized alongside AUC due to class imbalance and business importance of identifying sentiment polarity.
 
 Finally, the model was deployed with FastAPI and Render as a demo for use with the link https://tweet-project-8395.onrender.com
  
@@ -31,6 +34,13 @@ Deploying the same container on ≥1GB RAM instances runs successfully.
 
 This tradeoff is documented to highlight cost–infrastructure considerations when serving Spark models in real-time.
 
+### Tech Stack
+- Python 3.10
+- PySpark ML (TF-IDF, Logistic Regression)
+- Pandas, Matplotlib (EDA)
+- FastAPI, Uvicorn (Inference API)
+- Render (Deployment)
+- Parquet (Data storage)
 
 ### How To Run locally (WSL/Ubuntu)
 Run pip install -r requirements.txt to install necessary packages
@@ -41,7 +51,7 @@ Run pip install -r requirements.txt to install necessary packages
 5. Train the model by running the train.py file and save the pipeline model
 6. Evaluate the test data by running main.py file
 7. You can get predictions for sample tweets by running inference.py file to generate real time predictions. 
-8. You can also get to host the model locally by running the api.py file with uvicorn or fastapi from terminal.  FastAPI and uvicorn are included in the requirements.txt file already if you installed by pip. 
+8. You can host the model locally by running the api.py file with uvicorn or fastapi from terminal.  FastAPI and uvicorn are included in the requirements.txt file already if you installed by pip. 
 
 
 ##### Feature Improvements
