@@ -1,22 +1,19 @@
-# import os
+# for running locally
 # from pyspark.sql import SparkSession
 
 # def start_spark():
-#     return (
-#         SparkSession.builder
-#         .appName("SentimentAnalysis")
-#         .master("local[*]")
-#         # Make Spark bind only inside the container
-#         .config("spark.driver.bindAddress", "127.0.0.1")
-#         .config("spark.driver.host", "127.0.0.1")
-#         # Disable Spark UI (prevents port confusion + reduces noise)
-#         .config("spark.ui.enabled", "false")
-#         # Reduce network surprises
-#         .config("spark.network.timeout", "300s")
-#         .config("spark.executor.heartbeatInterval", "60s")
-#         .getOrCreate()
-#     )
+#     return  (
+    #     SparkSession.builder
+    #     .appName("SentimentAnalysis")
+    #     .config("spark.driver.memory", "5g")
+    #     .config("spark.executor.memory", "3g")
+    #     .config("spark.executor.cores", "2")
+    #     .config("spark.sql.shuffle.partitions", "24")
+    #     .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+    #     .getOrCreate()
+    # )
 
+# for deployment
 import os
 from pyspark.sql import SparkSession
 
